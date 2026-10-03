@@ -2,7 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { PaymentMethod } from '../../types';
 import { STORE_INFO } from '../../data/mockData';
-import { playBoingSound, playCrunchSound, playVictorySound } from '../../utils/audioFX';
+import { 
+  playOrderPlacedSignatureSound, 
+  playAddToCartSound, 
+  playRemoveFromCartSound,
+  playBoingSound
+} from '../../utils/audioFX';
 import { 
   Trash2, 
   Plus, 
@@ -38,16 +43,19 @@ export const CartDrawer: React.FC = () => {
     setSelectedCategory,
     soundEnabled,
     user,
-    openAuthModal
+    openAuthModal,
+    isStoreOpen
   } = useStore();
 
   const [customerName, setCustomerName] = useState<string>(user?.name || 'Bharathwaaj');
   const [customerPhone, setCustomerPhone] = useState<string>(user?.phone || '+91 98765 43210');
+  const [customerEmail, setCustomerEmail] = useState<string>(user?.email || 'bharathwaaj@dingting.shop');
 
   useEffect(() => {
     if (user) {
       setCustomerName(user.name);
       setCustomerPhone(user.phone);
+      if (user.email) setCustomerEmail(user.email);
     }
   }, [user]);
 
@@ -71,7 +79,7 @@ export const CartDrawer: React.FC = () => {
     e.preventDefault();
     if (cart.length === 0) return;
 
-    if (soundEnabled) playVictorySound();
+    if (soundEnabled) playOrderPlacedSignatureSound();
     setIsSubmitting(true);
 
     setTimeout(() => {
@@ -188,7 +196,7 @@ export const CartDrawer: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => {
-                        if (soundEnabled) playBoingSound();
+                        if (soundEnabled) playRemoveFromCartSound();
                         updateCartQuantity(item.cartItemId, -1);
                       }}
                       className="w-6 h-6 rounded flex items-center justify-center text-slate-300 hover:bg-[#271240] active:scale-90"
@@ -201,7 +209,7 @@ export const CartDrawer: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => {
-                        if (soundEnabled) playCrunchSound();
+                        if (soundEnabled) playAddToCartSound();
                         updateCartQuantity(item.cartItemId, 1);
                       }}
                       className="w-6 h-6 rounded flex items-center justify-center text-[#B2FC00] hover:bg-[#271240] active:scale-90"
@@ -217,7 +225,7 @@ export const CartDrawer: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      if (soundEnabled) playBoingSound();
+                      if (soundEnabled) playRemoveFromCartSound();
                       removeFromCart(item.cartItemId);
                     }}
                     className="text-slate-400 hover:text-rose-400 transition-colors p-1"
@@ -286,6 +294,21 @@ export const CartDrawer: React.FC = () => {
                   placeholder="+91 98765 43210"
                   value={customerPhone}
                   onChange={e => setCustomerPhone(e.target.value)}
+                  className="w-full bg-[#0E0617] border border-white/10 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-[#B2FC00] transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1 flex items-center justify-between">
+                  <span>Receipt Email Address *</span>
+                  <span className="text-[10px] text-[#B2FC00]">📧 Digital invoice sent here</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="yourname@gmail.com"
+                  value={customerEmail}
+                  onChange={e => setCustomerEmail(e.target.value)}
                   className="w-full bg-[#0E0617] border border-white/10 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-[#B2FC00] transition-colors"
                 />
               </div>
@@ -411,16 +434,34 @@ export const CartDrawer: React.FC = () => {
               </div>
             </div>
 
+            {/* Store Closed Warning Banner */}
+            {!isStoreOpen && (
+              <div className="bg-rose-950/80 border border-rose-500/80 p-3 rounded-xl text-center space-y-1">
+                <span className="font-extrabold text-rose-300 text-xs flex items-center justify-center gap-1.5">
+                  🔴 STORE IS CURRENTLY CLOSED
+                </span>
+                <p className="text-[11px] text-rose-200">
+                  Store staff has checked out for the period. Ordering will resume once staff checks in.
+                </p>
+              </div>
+            )}
+
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-[#B2FC00] hover:bg-[#C4FF1A] text-[#0E0617] py-3.5 rounded-xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.98] disabled:opacity-80"
+              disabled={isSubmitting || !isStoreOpen}
+              className={`w-full py-3.5 rounded-xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.98] ${
+                !isStoreOpen
+                  ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                  : 'bg-[#B2FC00] hover:bg-[#C4FF1A] text-[#0E0617] cursor-pointer disabled:opacity-80'
+              }`}
             >
               {isSubmitting ? (
                 <span className="flex items-center gap-2 font-headline animate-pulse text-xs">
                   <span>{SUBMIT_MESSAGES[submitStepIndex]}</span>
                 </span>
+              ) : !isStoreOpen ? (
+                <span>STORE CLOSED - ORDERS PAUSED</span>
               ) : (
                 <>
                   <span>CONFIRM PICKUP ORDER</span>

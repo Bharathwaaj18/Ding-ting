@@ -1,5 +1,6 @@
 import React from 'react';
 import { useStore } from '../../context/StoreContext';
+import { STATUS_IMAGE_MAP } from '../../data/mockData';
 import { Clock, RotateCcw } from 'lucide-react';
 
 export const MyOrdersView: React.FC = () => {
@@ -27,20 +28,28 @@ export const MyOrdersView: React.FC = () => {
       </div>
 
       <div className="space-y-4">
-        {orders.map(order => (
-          <div
-            key={order.id}
-            className="bg-[#160A24] border border-white/10 p-5 rounded-2xl space-y-4 hover:border-white/20 transition-colors"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
-              <div>
-                <span className="font-headline font-bold text-base text-white">
-                  Order #{order.orderNumber}
-                </span>
-                <p className="text-xs text-slate-400">
-                  Placed on {new Date(order.createdAt).toLocaleString()}
-                </p>
-              </div>
+        {orders.map(order => {
+          const statusImg = STATUS_IMAGE_MAP[order.status]?.image || '/refer_img/status-placed.png';
+
+          return (
+            <div
+              key={order.id}
+              className="bg-[#160A24] border border-white/10 p-5 rounded-2xl space-y-4 hover:border-white/20 transition-colors"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-xl overflow-hidden border border-white/10 shrink-0">
+                    <img src={statusImg} alt={order.status} className="w-full h-full object-cover" />
+                  </div>
+                  <div>
+                    <span className="font-headline font-bold text-base text-white block">
+                      Order #{order.orderNumber}
+                    </span>
+                    <p className="text-xs text-slate-400">
+                      Placed on {new Date(order.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
 
               <div className="flex items-center gap-2">
                 <span className={`px-3 py-1 rounded-full text-xs font-black uppercase ${
@@ -91,7 +100,8 @@ export const MyOrdersView: React.FC = () => {
             </div>
 
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

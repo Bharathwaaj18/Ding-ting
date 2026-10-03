@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MenuItem, CartAddon } from '../../types';
 import { useStore } from '../../context/StoreContext';
-import { playBoingSound, playCrunchSound } from '../../utils/audioFX';
+import { playBoingSound, playAddToCartSound, playCrunchSound } from '../../utils/audioFX';
 import { X, Plus, Minus, Flame, Clock, Check, ShoppingBag } from 'lucide-react';
 
 interface ItemModalProps {
@@ -33,7 +33,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose, onAddToCart
   const totalPrice = unitPrice * quantity;
 
   const handleAdd = () => {
-    if (soundEnabled) playCrunchSound();
+    if (soundEnabled) playAddToCartSound();
     onAddToCart(item, quantity, selectedAddons, specialNotes);
     onClose();
   };

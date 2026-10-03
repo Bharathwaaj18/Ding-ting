@@ -3,7 +3,35 @@ import { useStore } from '../../context/StoreContext';
 import { UserRole } from '../../types';
 import { playBoingSound, playCrunchSound, playVictorySound } from '../../utils/audioFX';
 import confetti from 'canvas-confetti';
-import { X, Phone, User, ShieldCheck, ArrowRight, RefreshCw, KeyRound, CheckCircle2, ChefHat, LayoutDashboard } from 'lucide-react';
+import { 
+  X, 
+  Phone, 
+  User, 
+  Mail, 
+  ShieldCheck, 
+  ArrowRight, 
+  RefreshCw, 
+  KeyRound, 
+  CheckCircle2, 
+  ChefHat, 
+  LayoutDashboard,
+  Sparkles,
+  Edit3
+} from 'lucide-react';
+
+interface RegisteredUserRecord {
+  name: string;
+  email: string;
+  phone: string;
+}
+
+const DEFAULT_REGISTERED_USERS: Record<string, RegisteredUserRecord> = {
+  '9876543210': {
+    name: 'Bharathwaaj',
+    email: 'bharathwaaj@dingting.shop',
+    phone: '9876543210',
+  }
+};
 
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, closeAuthModal, loginUser, soundEnabled } = useStore();
@@ -11,9 +39,23 @@ export const AuthModal: React.FC = () => {
   const [activeRoleTab, setActiveRoleTab] = useState<UserRole>('customer');
   const [step, setStep] = useState<'DETAILS' | 'OTP'>('DETAILS');
   
-  // Customer Login State
-  const [name, setName] = useState<string>('Bharathwaaj');
+  // Registered Users Directory (stored in localStorage)
+  const [registeredUsers, setRegisteredUsers] = useState<Record<string, RegisteredUserRecord>>(() => {
+    try {
+      const stored = localStorage.getItem('dingting_registered_users');
+      if (stored) return JSON.parse(stored);
+    } catch {
+      /* ignore */
+    }
+    return DEFAULT_REGISTERED_USERS;
+  });
+
+  // Customer Form State
   const [phone, setPhone] = useState<string>('9876543210');
+  const [name, setName] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
+  const [showEditFields, setShowEditFields] = useState<boolean>(false);
+
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [timer, setTimer] = useState<number>(30);
   
@@ -28,6 +70,19 @@ export const AuthModal: React.FC = () => {
 
   const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Clean phone string helper
+  const cleanPhone = phone.replace(/\D/g, '');
+  const existingRecord = registeredUsers[cleanPhone];
+  const isReturningUser = !!existingRecord;
+
+  // Auto-detect returning user and pre-fill details
+  useEffect(() => {
+    if (existingRecord) {
+      if (!name) setName(existingRecord.name);
+      if (!email) setEmail(existingRecord.email);
+    }
+  }, [cleanPhone, existingRecord]);
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (step === 'OTP' && timer > 0) {
@@ -40,19 +95,36 @@ export const AuthModal: React.FC = () => {
 
   if (!isAuthModalOpen) return null;
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawVal = e.target.value;
+    setPhone(rawVal);
+    const cleaned = rawVal.replace(/\D/g, '');
+    const found = registeredUsers[cleaned];
+    if (found) {
+      setName(found.name);
+      setEmail(found.email);
+    }
+  };
+
   const handleSendOtp = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
-    if (!name.trim()) {
-      setErrorMessage('Please enter your full name');
-      return;
-    }
-
-    const cleanPhone = phone.replace(/\D/g, '');
     if (cleanPhone.length < 10) {
       setErrorMessage('Please enter a valid 10-digit mobile number');
       return;
+    }
+
+    // If first-time user (or editing), require Name and Email
+    if (!isReturningUser || showEditFields) {
+      if (!name.trim()) {
+        setErrorMessage('Please enter your full name');
+        return;
+      }
+      if (!email.trim() || !/\S+@\S+\.\S+/.test(email.trim())) {
+        setErrorMessage('Please enter a valid email address for receiving order receipts');
+        return;
+      }
     }
 
     if (soundEnabled) playCrunchSound();
@@ -62,7 +134,8 @@ export const AuthModal: React.FC = () => {
       setIsSending(false);
       setStep('OTP');
       setTimer(30);
-      setSuccessMessage('OTP sent successfully to +91 ' + cleanPhone);
+      const targetName = isReturningUser ? existingRecord.name : name.trim();
+      setSuccessMessage(`OTP sent successfully to +91 ${cleanPhone} for ${targetName}`);
       setTimeout(() => setSuccessMessage(''), 4000);
     }, 600);
   };
@@ -103,12 +176,32 @@ export const AuthModal: React.FC = () => {
 
     setTimeout(() => {
       setIsVerifying(false);
-      const formattedPhone = phone.startsWith('+91') ? phone : `+91 ${phone}`;
-      loginUser(name, formattedPhone, 'customer');
+      const formattedPhone = phone.startsWith('+91') ? phone : `+91 ${cleanPhone}`;
+      const finalName = (isReturningUser && !showEditFields) ? existingRecord.name : name.trim();
+      const finalEmail = (isReturningUser && !showEditFields) ? existingRecord.email : email.trim();
+
+      // Save to registered users dictionary in localStorage
+      const updatedUsers = {
+        ...registeredUsers,
+        [cleanPhone]: {
+          name: finalName,
+          email: finalEmail,
+          phone: cleanPhone,
+        }
+      };
+      setRegisteredUsers(updatedUsers);
+      try {
+        localStorage.setItem('dingting_registered_users', JSON.stringify(updatedUsers));
+      } catch {
+        /* ignore */
+      }
+
+      // Log in user
+      loginUser(finalName, formattedPhone, finalEmail, 'customer');
 
       try {
         confetti({
-          particleCount: 70,
+          particleCount: 75,
           spread: 60,
           origin: { y: 0.6 },
           colors: ['#B2FC00', '#FF2E4C', '#FFB703']
@@ -125,8 +218,7 @@ export const AuthModal: React.FC = () => {
       setErrorMessage('Please enter Staff Passcode');
       return;
     }
-    if (soundEnabled) playVictorySound();
-    loginUser('Kitchen Staff', '+91 99000 11111', 'staff');
+    loginUser('Kitchen Staff', '+91 99000 11111', 'staff@dingting.shop', 'staff');
   };
 
   const handleAdminLogin = (e: React.FormEvent) => {
@@ -135,12 +227,11 @@ export const AuthModal: React.FC = () => {
       setErrorMessage('Please enter Admin Passcode');
       return;
     }
-    if (soundEnabled) playVictorySound();
-    loginUser('Store Admin', '+91 98000 22222', 'admin');
+    loginUser('Store Admin', '+91 98000 22222', 'admin@dingting.shop', 'admin');
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in select-none">
       <div 
         className="relative w-full max-w-md bg-[#160A24] border border-white/20 rounded-2xl p-6 sm:p-8 shadow-2xl text-white animate-fade-slide-up"
         onClick={e => e.stopPropagation()}
@@ -167,8 +258,8 @@ export const AuthModal: React.FC = () => {
           <h3 className="font-headline text-xl sm:text-2xl font-black text-white tracking-wide">
             DING TING AUTHENTICATION
           </h3>
-          <p className="text-xs text-slate-400">
-            Select your account type to access the system
+          <p className="text-xs text-slate-400 font-medium">
+            Pickup orders, email digital receipts & OTP verification
           </p>
         </div>
 
@@ -228,33 +319,31 @@ export const AuthModal: React.FC = () => {
         )}
         {successMessage && (
           <div className="mb-4 bg-emerald-500/20 border border-emerald-500/50 text-emerald-200 text-xs p-3 rounded-xl font-medium flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" /> {successMessage}
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> {successMessage}
           </div>
         )}
 
-        {/* ROLE 1: CUSTOMER LOGIN (OTP) */}
+        {/* ROLE 1: CUSTOMER LOGIN (OTP + Email Collection for First-Time Users) */}
         {activeRoleTab === 'customer' && (
           <>
             {step === 'DETAILS' && (
               <form onSubmit={handleSendOtp} className="space-y-4">
+                
+                {/* Mobile Number Input (Always visible) */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1 flex items-center gap-1">
-                    <User className="w-3.5 h-3.5 text-[#B2FC00]" /> Full Name *
+                  <label className="block text-xs font-bold text-slate-300 mb-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1">
+                      <Phone className="w-3.5 h-3.5 text-[#B2FC00]" /> Mobile Number *
+                    </span>
+                    {cleanPhone.length === 10 && (
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                        isReturningUser ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40' : 'bg-amber-950 text-amber-300 border border-amber-500/40'
+                      }`}>
+                        {isReturningUser ? '✨ REGISTERED USER' : '🎉 NEW USER REGISTRATION'}
+                      </span>
+                    )}
                   </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Enter your name (e.g. Bharathwaaj)"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    className="w-full bg-[#0E0617] border border-white/10 focus:border-[#B2FC00] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none transition-colors"
-                  />
-                </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1 flex items-center gap-1">
-                    <Phone className="w-3.5 h-3.5 text-[#B2FC00]" /> Mobile Number *
-                  </label>
                   <div className="relative flex items-center">
                     <span className="absolute left-3 text-xs sm:text-sm font-bold text-slate-400">+91</span>
                     <input
@@ -263,29 +352,94 @@ export const AuthModal: React.FC = () => {
                       maxLength={10}
                       placeholder="98765 43210"
                       value={phone}
-                      onChange={e => setPhone(e.target.value)}
+                      onChange={handlePhoneChange}
                       className="w-full bg-[#0E0617] border border-white/10 focus:border-[#B2FC00] rounded-xl pl-12 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none transition-colors"
                     />
                   </div>
                 </div>
 
+                {/* RETURNING USER NOTICE: Bypasses Name & Email fields */}
+                {isReturningUser && !showEditFields ? (
+                  <div className="bg-[#0E0617] border border-emerald-500/30 p-3 rounded-xl space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-emerald-300 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-[#B2FC00]" /> Welcome Back, {existingRecord.name}!
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowEditFields(true)}
+                        className="text-[10px] text-slate-400 hover:text-[#B2FC00] underline font-bold flex items-center gap-1"
+                      >
+                        <Edit3 className="w-3 h-3" /> Edit Info
+                      </button>
+                    </div>
+
+                    <p className="text-[11px] text-slate-400">
+                      Receipt email: <strong className="text-white font-mono">{existingRecord.email}</strong>
+                    </p>
+                    <span className="text-[10px] text-slate-500 block">
+                      ⚡ Quick OTP Login active. No need to re-enter registration details.
+                    </span>
+                  </div>
+                ) : (
+                  /* FIRST TIME LOGIN (OR EDITING): Collect Name & Receipt Email */
+                  <div className="space-y-3.5 bg-[#0E0617] p-3.5 rounded-xl border border-white/10">
+                    <div className="text-[11px] text-[#B2FC00] font-bold flex items-center gap-1">
+                      <Mail className="w-3.5 h-3.5 text-[#B2FC00]" />
+                      First-Time Details (Digital Receipt Email Required)
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1 flex items-center gap-1">
+                        <User className="w-3.5 h-3.5 text-[#B2FC00]" /> Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Enter your full name (e.g. Bharathwaaj)"
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        className="w-full bg-[#140B1F] border border-white/10 focus:border-[#B2FC00] rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition-colors"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1 flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <Mail className="w-3.5 h-3.5 text-[#B2FC00]" /> Receipt Email Address *
+                        </span>
+                        <span className="text-[10px] text-slate-500">For pickup invoices</span>
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="yourname@gmail.com"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        className="w-full bg-[#140B1F] border border-white/10 focus:border-[#B2FC00] rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition-colors"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <button
                   type="submit"
                   disabled={isSending}
-                  className="w-full bg-[#B2FC00] hover:bg-[#C4FF1A] text-[#0E0617] py-3 rounded-xl font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-[0.98] disabled:opacity-50 uppercase tracking-wider"
+                  className="w-full bg-[#B2FC00] hover:bg-[#C4FF1A] text-[#0E0617] py-3 rounded-xl font-headline font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-[0.98] disabled:opacity-50 uppercase tracking-wider cursor-pointer"
                 >
                   {isSending ? (
                     <span>Sending OTP...</span>
                   ) : (
                     <>
-                      <span>SEND VERIFICATION OTP</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <span>{isReturningUser && !showEditFields ? 'SEND OTP FOR QUICK LOGIN' : 'SEND VERIFICATION OTP'}</span>
+                      <ArrowRight className="w-4 h-4 stroke-[2.5]" />
                     </>
                   )}
                 </button>
               </form>
             )}
 
+            {/* STEP 2: ENTER OTP */}
             {step === 'OTP' && (
               <form onSubmit={handleVerifyOtp} className="space-y-4">
                 <div className="bg-[#0E0617] border border-[#B2FC00]/40 p-3 rounded-xl flex items-center justify-between text-xs">
@@ -296,7 +450,7 @@ export const AuthModal: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleAutoFillDemoOtp}
-                    className="bg-[#271240] hover:bg-[#341857] text-[#B2FC00] px-2.5 py-1 rounded-lg text-[11px] font-bold border border-[#B2FC00]/30 transition-all active:scale-95"
+                    className="bg-[#271240] hover:bg-[#341857] text-[#B2FC00] px-2.5 py-1 rounded-lg text-[11px] font-bold border border-[#B2FC00]/30 transition-all active:scale-95 cursor-pointer"
                   >
                     Auto-Fill ⚡
                   </button>
@@ -304,7 +458,7 @@ export const AuthModal: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-2 text-center">
-                    Enter 6-Digit OTP
+                    Enter 6-Digit OTP sent to +91 {cleanPhone}
                   </label>
                   <div className="flex items-center justify-center gap-2">
                     {otpDigits.map((digit, idx) => (
@@ -327,9 +481,9 @@ export const AuthModal: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setStep('DETAILS')}
-                    className="hover:text-white underline font-medium"
+                    className="hover:text-white underline font-medium cursor-pointer"
                   >
-                    Change Details
+                    Change Phone / Info
                   </button>
 
                   <button
@@ -348,13 +502,13 @@ export const AuthModal: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isVerifying}
-                  className="w-full bg-[#B2FC00] hover:bg-[#C4FF1A] text-[#0E0617] py-3 rounded-xl font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-[0.98] disabled:opacity-50 uppercase tracking-wider"
+                  className="w-full bg-[#B2FC00] hover:bg-[#C4FF1A] text-[#0E0617] py-3 rounded-xl font-headline font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-[0.98] disabled:opacity-50 uppercase tracking-wider cursor-pointer"
                 >
                   {isVerifying ? (
                     <span>Verifying OTP...</span>
                   ) : (
                     <>
-                      <ShieldCheck className="w-4 h-4" />
+                      <ShieldCheck className="w-4 h-4 stroke-[2.5]" />
                       <span>VERIFY OTP & LOGIN</span>
                     </>
                   )}
@@ -384,7 +538,7 @@ export const AuthModal: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full bg-[#B2FC00] hover:bg-[#C4FF1A] text-[#0E0617] py-3 rounded-xl font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-[0.98] uppercase tracking-wider"
+              className="w-full bg-[#B2FC00] hover:bg-[#C4FF1A] text-[#0E0617] py-3 rounded-xl font-headline font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-[0.98] uppercase tracking-wider cursor-pointer"
             >
               <ChefHat className="w-4 h-4" />
               <span>ACCESS KITCHEN DISPLAY (KDS)</span>
@@ -412,7 +566,7 @@ export const AuthModal: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full bg-[#B2FC00] hover:bg-[#C4FF1A] text-[#0E0617] py-3 rounded-xl font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-[0.98] uppercase tracking-wider"
+              className="w-full bg-[#B2FC00] hover:bg-[#C4FF1A] text-[#0E0617] py-3 rounded-xl font-headline font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-[0.98] uppercase tracking-wider cursor-pointer"
             >
               <LayoutDashboard className="w-4 h-4" />
               <span>ACCESS STORE ADMIN CONSOLE</span>

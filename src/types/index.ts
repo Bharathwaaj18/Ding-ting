@@ -117,3 +117,14 @@ export interface SalesReportData {
   popularItem: string;
   averageOrderValue: number;
 }
+
+export interface ShiftLog {
+  id: string;
+  shiftNumber: number;
+  openedAt: string;
+  closedAt: string | null;
+  openedBy: string;
+  closedBy?: string;
+  ordersCount: number;
+  totalRevenue: number;
+}

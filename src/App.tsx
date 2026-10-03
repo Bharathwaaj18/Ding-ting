@@ -17,6 +17,7 @@ import { Footer } from './components/Footer';
 
 const AppContent: React.FC = () => {
   const { role, customerTab, staffTab } = useStore();
+  const isKDS = role === 'staff' && staffTab === 'kds';
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0E0617] text-slate-100 font-body selection:bg-[#B2FC00] selection:text-[#0E0617]">
@@ -52,7 +53,7 @@ const AppContent: React.FC = () => {
             <AuthModal />
           </>
         ) : (
-          /* Staff & Admin Interface Views (No funny mascot overlay) */
+          /* Staff & Admin Interface Views */
           <>
             {staffTab === 'kds' && <KitchenDisplaySystem />}
             {staffTab === 'dashboard' && <StaffDashboard />}
@@ -64,7 +65,7 @@ const AppContent: React.FC = () => {
         )}
       </main>
 
-      <Footer />
+      {!isKDS && <Footer />}
     </div>
   );
 };

@@ -9,19 +9,23 @@ import {
   CartItem, 
   Order, 
   InventoryItem,
-  CartAddon 
+  CartAddon,
+  ShiftLog
 } from '../types';
 import { INITIAL_CATEGORIES, INITIAL_MENU_ITEMS, INITIAL_ORDERS, INITIAL_INVENTORY } from '../data/mockData';
 
 export interface UserProfile {
   name: string;
   phone: string;
+  email?: string;
   role: UserRole;
+  isFirstTime?: boolean;
 }
 
 export type CustomerDetails = {
   name: string;
   phone: string;
+  email?: string;
 };
 
 interface StoreContextType {
@@ -32,7 +36,7 @@ interface StoreContextType {
   isAuthModalOpen: boolean;
   openAuthModal: () => void;
   closeAuthModal: () => void;
-  loginUser: (name: string, phone: string, role?: UserRole) => void;
+  loginUser: (name: string, phone: string, email?: string, role?: UserRole) => void;
   logoutUser: () => void;
   
   customerTab: 'home' | 'menu' | 'cart' | 'track' | 'orders';
@@ -41,6 +45,9 @@ interface StoreContextType {
   staffTab: 'kds' | 'dashboard' | 'new-order' | 'menu-manage' | 'inventory' | 'reports';
   setStaffTab: (tab: 'kds' | 'dashboard' | 'new-order' | 'menu-manage' | 'inventory' | 'reports') => void;
   
+  isKDSFullscreen: boolean;
+  setIsKDSFullscreen: (fullscreen: boolean) => void;
+  
   categories: Category[];
   menuItems: MenuItem[];
   cart: CartItem[];
@@ -48,6 +55,15 @@ interface StoreContextType {
   activeOrderId: string | null;
   setActiveOrderId: (id: string | null) => void;
   inventory: InventoryItem[];
+
+  // Store Operational Status & Shifts
+  isStoreOpen: boolean;
+  checkInTime: string | null;
+  checkOutTime: string | null;
+  shiftHistory: ShiftLog[];
+  checkInStore: (actorName?: string) => void;
+  checkOutStore: (actorName?: string) => void;
+  toggleStoreOpenStatus: (actorName?: string) => void;
   
   // Cart Actions
   addToCart: (item: MenuItem, quantity: number, selectedAddons: CartAddon[], notes?: string) => void;
@@ -65,6 +81,9 @@ interface StoreContextType {
   
   // Admin / Staff Actions
   toggleItemAvailability: (itemId: string) => void;
+  addMenuItem: (item: Omit<MenuItem, 'id'>) => void;
+  updateMenuItem: (item: MenuItem) => void;
+  deleteMenuItem: (itemId: string) => void;
   updateInventoryQuantity: (id: string, delta: number) => void;
   
   // Sound Notification Toggle
@@ -84,6 +103,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [role, setRole] = useState<UserRole>('customer');
   const [customerTab, setCustomerTab] = useState<'home' | 'menu' | 'cart' | 'track' | 'orders'>('home');
   const [staffTab, setStaffTab] = useState<'kds' | 'dashboard' | 'new-order' | 'menu-manage' | 'inventory' | 'reports'>('kds');
+  const [isKDSFullscreen, setIsKDSFullscreen] = useState<boolean>(false);
   
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
@@ -91,8 +111,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const openAuthModal = () => setIsAuthModalOpen(true);
   const closeAuthModal = () => setIsAuthModalOpen(false);
 
-  const loginUser = (name: string, phone: string, targetRole: UserRole = 'customer') => {
-    setUser({ name, phone, role: targetRole });
+  const loginUser = (name: string, phone: string, email?: string, targetRole: UserRole = 'customer') => {
+    setUser({ name, phone, email, role: targetRole });
     setRole(targetRole);
     if (targetRole === 'staff') setStaffTab('kds');
     if (targetRole === 'admin') setStaffTab('dashboard');
@@ -112,6 +132,63 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [activeOrderId, setActiveOrderId] = useState<string | null>('ord-1025');
   const [inventory, setInventory] = useState<InventoryItem[]>(INITIAL_INVENTORY);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+
+  // Store Operational Status & Shifts (Check-In / Check-Out)
+  const [isStoreOpen, setIsStoreOpen] = useState<boolean>(true);
+  const [checkInTime, setCheckInTime] = useState<string | null>(() => new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString());
+  const [checkOutTime, setCheckOutTime] = useState<string | null>(null);
+  const [shiftHistory, setShiftHistory] = useState<ShiftLog[]>([
+    {
+      id: 'shift-101',
+      shiftNumber: 1,
+      openedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      closedAt: new Date(Date.now() - 14 * 60 * 60 * 1000).toISOString(),
+      openedBy: 'Shift Manager Vijay',
+      closedBy: 'Shift Manager Vijay',
+      ordersCount: 18,
+      totalRevenue: 8450,
+    }
+  ]);
+
+  const checkInStore = (_actorName: string = 'KDS Operator') => {
+    const nowIso = new Date().toISOString();
+    setIsStoreOpen(true);
+    setCheckInTime(nowIso);
+    setCheckOutTime(null);
+  };
+
+  const checkOutStore = (actorName: string = 'KDS Operator') => {
+    const nowIso = new Date().toISOString();
+    setIsStoreOpen(false);
+    setCheckOutTime(nowIso);
+
+    const shiftOrders = checkInTime
+      ? orders.filter(o => new Date(o.createdAt).getTime() >= new Date(checkInTime).getTime())
+      : orders;
+    
+    const shiftRevenue = shiftOrders.reduce((sum, o) => sum + o.total, 0);
+
+    const newShift: ShiftLog = {
+      id: `shift-${Date.now()}`,
+      shiftNumber: shiftHistory.length + 1,
+      openedAt: checkInTime || nowIso,
+      closedAt: nowIso,
+      openedBy: actorName,
+      closedBy: actorName,
+      ordersCount: shiftOrders.length,
+      totalRevenue: shiftRevenue,
+    };
+
+    setShiftHistory(prev => [newShift, ...prev]);
+  };
+
+  const toggleStoreOpenStatus = (actorName: string = 'KDS Operator') => {
+    if (isStoreOpen) {
+      checkOutStore(actorName);
+    } else {
+      checkInStore(actorName);
+    }
+  };
   
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -254,7 +331,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // State Machine Validation (food-store-ordering-system-spec.md Section 15)
   const isValidTransition = (current: OrderStatus, next: OrderStatus): boolean => {
     const validMap: Record<OrderStatus, OrderStatus[]> = {
-      PLACED: ['ACCEPTED', 'CANCELLED'],
+      PLACED: ['ACCEPTED', 'PREPARING', 'CANCELLED'],
       ACCEPTED: ['PREPARING', 'CANCELLED'],
       PREPARING: ['READY_FOR_PICKUP'],
       READY_FOR_PICKUP: ['PICKED_UP'],
@@ -322,6 +399,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }));
   };
 
+  const addMenuItem = (itemData: Omit<MenuItem, 'id'>) => {
+    const newId = `item-${Date.now()}`;
+    const newItem: MenuItem = {
+      ...itemData,
+      id: newId,
+    };
+    setMenuItems(prev => [newItem, ...prev]);
+  };
+
+  const updateMenuItem = (updatedItem: MenuItem) => {
+    setMenuItems(prev => prev.map(item => item.id === updatedItem.id ? updatedItem : item));
+  };
+
+  const deleteMenuItem = (itemId: string) => {
+    setMenuItems(prev => prev.filter(item => item.id !== itemId));
+  };
+
   const updateInventoryQuantity = (id: string, delta: number) => {
     setInventory(prev => prev.map(item => {
       if (item.id === id) {
@@ -347,6 +441,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setCustomerTab,
         staffTab,
         setStaffTab,
+        isKDSFullscreen,
+        setIsKDSFullscreen,
         categories,
         menuItems,
         cart,
@@ -354,6 +450,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         activeOrderId,
         setActiveOrderId,
         inventory,
+        isStoreOpen,
+        checkInTime,
+        checkOutTime,
+        shiftHistory,
+        checkInStore,
+        checkOutStore,
+        toggleStoreOpenStatus,
         addToCart,
         removeFromCart,
         updateCartQuantity,
@@ -365,6 +468,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         placeOrder,
         updateOrderStatus,
         toggleItemAvailability,
+        addMenuItem,
+        updateMenuItem,
+        deleteMenuItem,
         updateInventoryQuantity,
         soundEnabled,
         setSoundEnabled,

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { MenuItem } from '../../types';
 import { ItemModal } from './ItemModal';
-import { playCrunchSound, playBoingSound } from '../../utils/audioFX';
+import { playAddToCartSound, playBoingSound, playCrunchSound } from '../../utils/audioFX';
 import { 
   Search, 
   Flame, 
@@ -79,6 +79,7 @@ export const MenuCatalog: React.FC = () => {
     const funnyPops = ['CRUNCH!! 💥', 'NOM NOM 😋', 'JUICY BLAST! 💦', '100% CRUNCH! 🔊', 'CHOMP! 🦷'];
     const randomPop = funnyPops[Math.floor(Math.random() * funnyPops.length)];
     
+    if (soundEnabled) playAddToCartSound();
     addToCart(item, 1, []);
     triggerCardPop(item.id, randomPop);
   };

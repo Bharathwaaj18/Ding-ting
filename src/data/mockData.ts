@@ -273,6 +273,107 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
 ];
 
 export const INITIAL_ORDERS: Order[] = [
+  // ── KDS Demo: on-time NEW (3 min) ──
+  {
+    id: 'ord-1030',
+    orderNumber: 'DT-1030',
+    customerName: 'Meera Nair',
+    customerPhone: '+91 94400 11223',
+    orderType: 'PICKUP',
+    status: 'PLACED',
+    items: [
+      { id: 'koi-1', menuItemId: 'bb-02', name: '4 Pcs Classic Broasted', quantity: 2, unitPrice: 399, totalPrice: 798, addonsList: ['Garlic Dip (+₹30)', 'Extra Crispy (+₹0)'] },
+      { id: 'koi-2', menuItemId: 'ac-01', name: 'Classic Arabian Champagne', quantity: 1, unitPrice: 99, totalPrice: 99 },
+    ],
+    subtotal: 897, tax: 45, discount: 0, total: 942,
+    pickupTime: 'ASAP',
+    paymentMethod: 'UPI', paymentStatus: 'PAID',
+    notes: 'NO garlic — customer allergic to garlic',
+    createdAt: new Date(Date.now() - 3 * 60000).toISOString(),
+    statusHistory: [{ previousStatus: 'NONE', newStatus: 'PLACED', changedBy: 'Meera Nair', changedAt: new Date(Date.now() - 3 * 60000).toISOString() }],
+  },
+  // ── KDS Demo: amber NEW (9 min, ACCEPTED) ──
+  {
+    id: 'ord-1029',
+    orderNumber: 'DT-1029',
+    customerName: 'Suresh Kumar',
+    customerPhone: '+91 98001 44556',
+    orderType: 'PICKUP',
+    status: 'ACCEPTED',
+    items: [
+      { id: 'koi-3', menuItemId: 'pk-01', name: 'DING TING Special Party Kit', quantity: 1, unitPrice: 999, totalPrice: 999 },
+    ],
+    subtotal: 999, tax: 50, discount: 0, total: 1049,
+    pickupTime: 'ASAP',
+    paymentMethod: 'CASH', paymentStatus: 'PENDING',
+    createdAt: new Date(Date.now() - 9 * 60000).toISOString(),
+    statusHistory: [
+      { previousStatus: 'NONE', newStatus: 'PLACED', changedBy: 'Suresh Kumar', changedAt: new Date(Date.now() - 9 * 60000).toISOString() },
+      { previousStatus: 'PLACED', newStatus: 'ACCEPTED', changedBy: 'KDS', changedAt: new Date(Date.now() - 7 * 60000).toISOString() },
+    ],
+  },
+  // ── KDS Demo: LATE NEW (14 min, PLACED) ──
+  {
+    id: 'ord-1028',
+    orderNumber: 'DT-1028',
+    customerName: 'Deepak Menon',
+    customerPhone: '+91 97000 78901',
+    orderType: 'PICKUP',
+    status: 'PLACED',
+    items: [
+      { id: 'koi-4', menuItemId: 'sb-01', name: '2 Pcs Spice Infused Broasted', quantity: 3, unitPrice: 239, totalPrice: 717 },
+      { id: 'koi-5', menuItemId: 'sd-02', name: 'Chicken Loaded Fries', quantity: 1, unitPrice: 189, totalPrice: 189 },
+    ],
+    subtotal: 906, tax: 45, discount: 0, total: 951,
+    pickupTime: 'ASAP',
+    paymentMethod: 'ONLINE', paymentStatus: 'PAID',
+    notes: 'Extra crispy, pack fries separately!',
+    createdAt: new Date(Date.now() - 14 * 60000).toISOString(),
+    statusHistory: [{ previousStatus: 'NONE', newStatus: 'PLACED', changedBy: 'Deepak Menon', changedAt: new Date(Date.now() - 14 * 60000).toISOString() }],
+  },
+  // ── KDS Demo: COOKING on-time (6 min) ──
+  {
+    id: 'ord-1027',
+    orderNumber: 'DT-1027',
+    customerName: 'Lakshmi Venkat',
+    customerPhone: '+91 96000 33445',
+    orderType: 'PICKUP',
+    status: 'PREPARING',
+    items: [
+      { id: 'koi-6', menuItemId: 'bb-03', name: '6 Pcs Classic Broasted', quantity: 1, unitPrice: 549, totalPrice: 549, addonsList: ['Garlic Dip (+₹30)'] },
+    ],
+    subtotal: 579, tax: 29, discount: 0, total: 608,
+    pickupTime: 'ASAP',
+    paymentMethod: 'UPI', paymentStatus: 'PAID',
+    createdAt: new Date(Date.now() - 6 * 60000).toISOString(),
+    statusHistory: [
+      { previousStatus: 'NONE', newStatus: 'PLACED', changedBy: 'Lakshmi Venkat', changedAt: new Date(Date.now() - 6 * 60000).toISOString() },
+      { previousStatus: 'PLACED', newStatus: 'ACCEPTED', changedBy: 'KDS', changedAt: new Date(Date.now() - 5 * 60000).toISOString() },
+      { previousStatus: 'ACCEPTED', newStatus: 'PREPARING', changedBy: 'Chef Anbu', changedAt: new Date(Date.now() - 4 * 60000).toISOString() },
+    ],
+  },
+  // ── KDS Demo: READY cash order ──
+  {
+    id: 'ord-1026',
+    orderNumber: 'DT-1026',
+    customerName: 'Arun Pillai',
+    customerPhone: '+91 94400 99001',
+    orderType: 'PICKUP',
+    status: 'READY_FOR_PICKUP',
+    items: [
+      { id: 'koi-7', menuItemId: 'bb-01', name: '2 Pcs Classic Broasted', quantity: 1, unitPrice: 219, totalPrice: 219 },
+    ],
+    subtotal: 219, tax: 11, discount: 0, total: 230,
+    pickupTime: 'ASAP',
+    paymentMethod: 'CASH', paymentStatus: 'PENDING',
+    createdAt: new Date(Date.now() - 18 * 60000).toISOString(),
+    statusHistory: [
+      { previousStatus: 'NONE', newStatus: 'PLACED', changedBy: 'Arun Pillai', changedAt: new Date(Date.now() - 18 * 60000).toISOString() },
+      { previousStatus: 'PLACED', newStatus: 'ACCEPTED', changedBy: 'KDS', changedAt: new Date(Date.now() - 16 * 60000).toISOString() },
+      { previousStatus: 'ACCEPTED', newStatus: 'PREPARING', changedBy: 'Chef Anbu', changedAt: new Date(Date.now() - 14 * 60000).toISOString() },
+      { previousStatus: 'PREPARING', newStatus: 'READY_FOR_PICKUP', changedBy: 'KDS', changedAt: new Date(Date.now() - 2 * 60000).toISOString() },
+    ],
+  },
   {
     id: 'ord-1025',
     orderNumber: 'DT-1025',
@@ -553,3 +654,42 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
   { id: 'inv-6', name: 'Arabian Champagne Syrup Base (Liters)', unit: 'L', currentQuantity: 14, minimumQuantity: 5, category: 'Beverages', isActive: true },
   { id: 'inv-7', name: 'Ding Ting Custom Chicken Boxes', unit: 'pcs', currentQuantity: 240, minimumQuantity: 50, category: 'Packaging', isActive: true },
 ];
+
+export const STATUS_IMAGE_MAP: Record<string, { image: string; title: string; subtitle: string }> = {
+  PLACED: {
+    image: '/refer_img/status-placed.png',
+    title: 'Order Placed & Registered',
+    subtitle: 'Ticket received at Mandapam Rd counter'
+  },
+  ACCEPTED: {
+    image: '/refer_img/status-accepted.png',
+    title: 'Accepted by Kitchen',
+    subtitle: 'Chef has accepted your ticket with a grin'
+  },
+  PREPARING: {
+    image: '/refer_img/status-preparing.png',
+    title: 'Broasting in Progress',
+    subtitle: 'Crispy skin & juicy chicken sizzling at 500 PSI'
+  },
+  READY_FOR_PICKUP: {
+    image: '/refer_img/status-ready.png',
+    title: 'Ready for Pickup!',
+    subtitle: 'Hot & packaged at Ding Ting counter!'
+  },
+  PICKED_UP: {
+    image: '/refer_img/status-completed.png',
+    title: 'Order Picked Up',
+    subtitle: 'Food coma time! Thank you for munching!'
+  },
+  COMPLETED: {
+    image: '/refer_img/status-completed.png',
+    title: 'Order Completed',
+    subtitle: 'Thank you for munching! Food coma time!'
+  },
+  CANCELLED: {
+    image: '/refer_img/status-placed.png',
+    title: 'Order Cancelled',
+    subtitle: 'This order was cancelled'
+  }
+};
+

@@ -16,7 +16,9 @@ import {
   KeyRound,
   Home,
   Truck,
-  Receipt
+  Receipt,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { STORE_INFO } from '../data/mockData';
 
@@ -32,56 +34,75 @@ export const Navbar: React.FC = () => {
     orders,
     user,
     openAuthModal,
-    logoutUser
+    logoutUser,
+    isStoreOpen,
+    soundEnabled,
+    setSoundEnabled,
+    isKDSFullscreen
   } = useStore();
+
+  if (isKDSFullscreen) return null;
+
+  const isKDS = role === 'staff' && staffTab === 'kds';
 
   const pendingCount = orders.filter(o => ['PLACED', 'ACCEPTED', 'PREPARING'].includes(o.status)).length;
   const readyCount = orders.filter(o => o.status === 'READY_FOR_PICKUP').length;
 
   return (
     <header className="sticky top-0 z-40 bg-[#0E0617]/90 backdrop-blur-md border-b border-white/10 shadow-lg">
-      {/* Top Announcement & Location Bar */}
-      <div className="bg-[#160A24] text-[11px] py-1.5 px-3 sm:px-6 border-b border-white/5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
-          {/* Location & Pickup info */}
-          <div className="flex items-center gap-3 text-slate-300 truncate font-medium">
-            <span className="flex items-center gap-1.5 text-[#B2FC00] font-semibold shrink-0">
-              <MapPin className="w-3.5 h-3.5 text-[#B2FC00]" />
-              <span className="truncate max-w-[150px] sm:max-w-none">{STORE_INFO.address}</span>
-            </span>
-            <span className="hidden sm:inline-flex items-center gap-1.5 text-slate-400">
-              <Clock className="w-3.5 h-3.5 text-amber-400" />
-              {STORE_INFO.pickupTiming} (Pickup Only)
-            </span>
-          </div>
+      {/* Top Announcement & Location Bar (Hidden in KDS mode to maximize screen space) */}
+      {!isKDS && (
+        <div className="bg-[#160A24] text-[11px] py-1.5 px-3 sm:px-6 border-b border-white/5">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+            {/* Location & Pickup info */}
+            <div className="flex items-center gap-3 text-slate-300 truncate font-medium">
+              <span className="flex items-center gap-1.5 text-[#B2FC00] font-semibold shrink-0">
+                <MapPin className="w-3.5 h-3.5 text-[#B2FC00]" />
+                <span className="truncate max-w-[150px] sm:max-w-none">{STORE_INFO.address}</span>
+              </span>
+              <span className="hidden sm:inline-flex items-center gap-1.5 text-slate-400">
+                <Clock className="w-3.5 h-3.5 text-amber-400" />
+                {STORE_INFO.pickupTiming} (Pickup Only)
+              </span>
+            </div>
 
-          {/* Badges & Staff Portal Link */}
-          <div className="flex items-center gap-3 shrink-0">
-            <span className="bg-[#B2FC00]/10 text-[#B2FC00] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 border border-[#B2FC00]/25 text-[10px]">
-              <ShieldCheck className="w-3 h-3 text-[#B2FC00]" /> Halal Certified
-            </span>
-            <button
-              onClick={() => {
-                playBoingSound();
-                openAuthModal();
-              }}
-              className="text-slate-400 hover:text-[#B2FC00] flex items-center gap-1.5 font-semibold transition-colors text-[11px]"
-            >
-              <KeyRound className="w-3.5 h-3.5 text-[#B2FC00]" /> <span className="hidden xs:inline">Staff Access</span>
-            </button>
+            {/* Badges, Store Open Status & Staff Portal Link */}
+            <div className="flex items-center gap-3 shrink-0">
+              {/* Store Status Badge */}
+              <span className={`px-2 py-0.5 rounded-full font-black flex items-center gap-1 border text-[10px] ${
+                isStoreOpen
+                  ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
+                  : 'bg-rose-950/80 text-rose-300 border-rose-500/60 animate-pulse'
+              }`}>
+                {isStoreOpen ? '🟢 STORE OPEN FOR PICKUP' : '🔴 STORE CLOSED FOR ORDERS'}
+              </span>
+
+              <span className="hidden md:inline-flex bg-[#B2FC00]/10 text-[#B2FC00] px-2 py-0.5 rounded-full font-bold items-center gap-1 border border-[#B2FC00]/25 text-[10px]">
+                <ShieldCheck className="w-3 h-3 text-[#B2FC00]" /> Halal Certified
+              </span>
+              <button
+                onClick={() => {
+                  playBoingSound();
+                  openAuthModal();
+                }}
+                className="text-slate-400 hover:text-[#B2FC00] flex items-center gap-1.5 font-semibold transition-colors text-[11px]"
+              >
+                <KeyRound className="w-3.5 h-3.5 text-[#B2FC00]" /> <span className="hidden xs:inline">Staff Access</span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Main Navbar Branding Header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3 sm:gap-6">
+      <div className={`max-w-7xl mx-auto px-4 sm:px-6 ${isKDS ? 'py-1.5' : 'py-3'} flex items-center justify-between gap-3 sm:gap-6`}>
         
         {/* Brand Logo & Name */}
         <div 
           onClick={() => { setRole('customer'); setCustomerTab('home'); }}
           className="flex items-center gap-3 cursor-pointer group shrink-0"
         >
-          <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl overflow-hidden border border-[#B2FC00]/60 shadow-sm transition-transform group-hover:scale-105">
+          <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden border border-[#B2FC00]/60 shadow-sm transition-transform group-hover:scale-105">
             <img 
               src={STORE_INFO.logoUrl} 
               alt="Ding Ting Logo" 
@@ -93,13 +114,17 @@ export const Navbar: React.FC = () => {
               <span className="font-headline text-xl sm:text-2xl font-black tracking-wide text-white group-hover:text-[#B2FC00] transition-colors leading-none">
                 DING TING
               </span>
-              <span className="bg-[#FF2E4C] text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded tracking-wider uppercase">
-                BROASTED
-              </span>
+              {!isKDS && (
+                <span className="bg-[#FF2E4C] text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded tracking-wider uppercase">
+                  BROASTED
+                </span>
+              )}
             </div>
-            <p className="text-[10px] font-bold text-[#B2FC00] tracking-wider pt-0.5 uppercase">
-              Signature Broasted Chicken
-            </p>
+            {!isKDS && (
+              <p className="text-[10px] font-bold text-[#B2FC00] tracking-wider pt-0.5 uppercase">
+                Signature Broasted Chicken
+              </p>
+            )}
           </div>
         </div>
 
@@ -182,13 +207,22 @@ export const Navbar: React.FC = () => {
               </button>
             )}
 
+            {/* Sound On/Off Toggle Button */}
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className="p-2 bg-[#160A24] hover:bg-[#271240] text-slate-300 hover:text-[#B2FC00] border border-white/10 rounded-xl font-bold text-xs flex items-center justify-center transition-all active:scale-[0.98] cursor-pointer"
+              title={soundEnabled ? 'Mute Store Sound FX' : 'Enable Store Sound FX'}
+            >
+              {soundEnabled ? <Volume2 className="w-4 h-4 text-[#B2FC00]" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
+            </button>
+
             {/* Cart Button */}
             <button
               onClick={() => {
-                playBoingSound();
+                if (soundEnabled) playBoingSound();
                 setCustomerTab('cart');
               }}
-              className="relative bg-[#B2FC00] hover:bg-[#C4FF1A] text-[#0E0617] px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl font-black text-xs sm:text-sm flex items-center gap-2 transition-all active:scale-[0.98] shadow-sm"
+              className="relative bg-[#B2FC00] hover:bg-[#C4FF1A] text-[#0E0617] px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl font-black text-xs sm:text-sm flex items-center gap-2 transition-all active:scale-[0.98] shadow-sm cursor-pointer"
             >
               <ShoppingBag className="w-4 h-4 stroke-[2.5]" />
               <span className="font-extrabold">Cart</span>
